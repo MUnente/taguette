@@ -1567,6 +1567,7 @@ document.getElementById('members-current').addEventListener('submit', function(e
 
 var document_contents = document.getElementById('document-contents');
 var export_button = document.getElementById('export-button');
+var report_types = { WORDCLOUD: 1, ANOTHERREPORT: 2 }
 
 function loadDocument(document_id) {
   if(document_id === null) {
@@ -1839,20 +1840,16 @@ window.onpopstate = function(e) {
 };
 
 
-function loadWordCloud() {
+function loadReport(report_id) {
   showSpinner();
-  setTimeout(() => {
-    document_contents.innerHTML = 'Carregou a Nuvem de palavras!';
-    hideSpinner();
-  }, 5000);
-}
-
-function loadAnotherReport() {
-  showSpinner();
-  setTimeout(() => {
-    document_contents.innerHTML = 'Carregou qualquer outro relatório!';
-    hideSpinner();
-  }, 1000);
+  getJSON('/api/project/' + project_id + '/report/' + report_id)
+    .then(function(result) {
+      document_contents.innerHTML = result.data;
+    })
+    .catch(function(error) {
+      console.error("Failed to load report:", error);
+      alert(gettext("Error loading report!") + "\n\n" + error);
+    }).then(hideSpinner);
 }
 
 /*

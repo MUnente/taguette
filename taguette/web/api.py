@@ -1015,3 +1015,17 @@ class ProjectEvents(BaseHandler):
                 self.request.remote_ip,
                 1000.0 * self.request.request_time(),
             )
+
+
+class Reports(BaseHandler):
+    @api_auth
+    def get(self, project_id, report_id):
+        if (int(report_id) == 1):
+            return self.send_json({
+                'data': "Carregou a Nuvem de palavras!"
+            })
+        else:
+            return self.send_json({
+                'data': "Carregou qualquer outro relatório!"
+            })
+            

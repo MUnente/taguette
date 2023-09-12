@@ -180,6 +180,7 @@ def make_app(config, debug=False, xsrf_cookies=True):
         UnbakedURLSpec('/api/project/([0-9]+)/tag/merge', api.TagMerge),
         UnbakedURLSpec('/api/project/([0-9]+)/members', api.MembersUpdate),
         UnbakedURLSpec('/api/project/([0-9]+)/events', api.ProjectEvents),
+        UnbakedURLSpec('/api/project/([0-9]+)/report/([0-9]+)', api.Reports),
 
         # Translation catalog and functions
         UnbakedURLSpec('/trans\\.js', TranslationJs, name='trans.js'),

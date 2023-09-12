@@ -1791,6 +1791,8 @@ function loadTag(tag_path, page) {
       }
     }
 
+    console.log(document_contents);
+
     // Scroll up
     window.setTimeout(function() { window.scrollTo(0, 0); }, 0);
   })
@@ -1836,6 +1838,22 @@ window.onpopstate = function(e) {
   }
 };
 
+
+function loadWordCloud() {
+  showSpinner();
+  setTimeout(() => {
+    document_contents.innerHTML = 'Carregou a Nuvem de palavras!';
+    hideSpinner();
+  }, 5000);
+}
+
+function loadAnotherReport() {
+  showSpinner();
+  setTimeout(() => {
+    document_contents.innerHTML = 'Carregou qualquer outro relatório!';
+    hideSpinner();
+  }, 1000);
+}
 
 /*
  * Long polling

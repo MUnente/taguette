@@ -21,6 +21,9 @@
         <li class="nav-item">
           <a class="nav-link" id="tags-tab" data-toggle="tab" href="#tags" role="tab" aria-controls="tags" aria-selected="false">{# TRANSLATORS: Left pane tab, keep short #}{% trans "tab" %}Highlights{% endtrans %}</a>
         </li>
+        <li class="nav-item">
+          <a class="nav-link" id="reports-tab" data-toggle="tab" href="#reports" role="tab" aria-controls="reports" aria-selected="false">{# TRANSLATORS: Left pane tab, keep short #}{% trans "tab" %}Reports{% endtrans %}</a>
+        </li>
       </ul>
 
       <div class="tab-content" id="myTabContent">
@@ -106,6 +109,13 @@
           </ul>
         </div>
 
+        <!-- Reports -->
+        <div class="tab-pane fade" id="reports" role="tabpanel" aria-labelledby="reports-tab">
+          <p>Generate reports with this options:</p>
+          <p><a href="javascript:loadWordCloud()" class="w-100 btn btn-outline-primary" role="button">{% trans %}Word cloud{% endtrans %}</a></p>
+          <p><a href="javascript:loadAnotherReport()" class="w-100 btn btn-outline-primary" role="button">{% trans %}Teste{% endtrans %}</a></p>
+        </div>
+        
       </div>
     </div>
   </div>

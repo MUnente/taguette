@@ -22,6 +22,10 @@ from .. import extract
 from .. import validate
 from .base import BaseHandler, PromMeasureRequest
 
+import matplotlib.pyplot, io, base64
+from wordcloud import WordCloud, STOPWORDS
+
+stopwords = STOPWORDS
 
 logger = logging.getLogger(__name__)
 
@@ -1021,11 +1025,20 @@ class Reports(BaseHandler):
     @api_auth
     def get(self, project_id, report_id):
         if (int(report_id) == 1):
-            return self.send_json({
-                'data': "Carregou a Nuvem de palavras!"
-            })
+            return self.generate_word_cloud()
         else:
             return self.send_json({
                 'data': "Carregou qualquer outro relatório!"
             })
-            
+    
+    def generate_word_cloud(self):
+        super_string = "Who are you talking to right now? Who is it you think you see? Do you know how much I make a year? I mean, even if I told you, you wouldn't believe it. Do you know what would happen if I suddenly decided to stop going into work? A business big enough that it could be listed on the NASDAQ goes belly up. Disappears! It ceases to exist without me. No, you clearly don't know who you're talking to, so let me clue you in. I am not in danger, Skyler. I am the danger. A guy opens his door and gets shot and you think that of me? No. I am the one who knocks!"
+        
+        wc = WordCloud(background_color = 'white', stopwords = stopwords, height = 400, width = 600).generate(super_string)
+        img_data = io.BytesIO()
+        wc.to_image().save(img_data, format="PNG")
+        img_base64 = base64.b64encode(img_data.getvalue()).decode()
+
+        return self.send_json({
+            'data': img_base64
+        })

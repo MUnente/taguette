@@ -1844,12 +1844,22 @@ function loadReport(report_id) {
   showSpinner();
   getJSON('/api/project/' + project_id + '/report/' + report_id)
     .then(function(result) {
-      document_contents.innerHTML = result.data;
+      if (report_id === report_types.WORDCLOUD)
+        generateWordCloud(result.data);
+      else
+        document_contents.innerHTML = result.data;
     })
-    .catch(function(error) {
-      console.error("Failed to load report:", error);
-      alert(gettext("Error loading report!") + "\n\n" + error);
-    }).then(hideSpinner);
+  .catch(function(error) {
+    console.error("Failed to load report:", error);
+    alert(gettext("Error loading report!") + "\n\n" + error);
+  }).then(hideSpinner);
+}
+
+function generateWordCloud(base64Image) {
+  document_contents.innerHTML = '';
+  var image = new Image();
+  image.src = 'data:image/png;base64,' + base64Image;
+  document_contents.appendChild(image);
 }
 
 /*

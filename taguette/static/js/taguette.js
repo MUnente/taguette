@@ -1567,7 +1567,7 @@ document.getElementById('members-current').addEventListener('submit', function(e
 
 var document_contents = document.getElementById('document-contents');
 var export_button = document.getElementById('export-button');
-var report_types = { WORDCLOUD: 1, ANOTHERREPORT: 2 }
+var report_types = { BARCHART: 1, PIECHART: 2, WORDCLOUD: 3 }
 
 function loadDocument(document_id) {
   if(document_id === null) {
@@ -1844,10 +1844,7 @@ function loadReport(report_id) {
   showSpinner();
   getJSON('/api/project/' + project_id + '/report/' + report_id)
     .then(function(result) {
-      if (report_id === report_types.WORDCLOUD)
-        generateWordCloud(result.data);
-      else
-        document_contents.innerHTML = result.data;
+      generateWordCloud(result.data);
     })
   .catch(function(error) {
     console.error("Failed to load report:", error);

@@ -6,7 +6,7 @@ import logging
 import math
 import os
 import prometheus_client
-from sqlalchemy import and_
+from sqlalchemy import and_, func
 from sqlalchemy.exc import IntegrityError, DatabaseError, NoSuchTableError
 from sqlalchemy.orm import aliased, defer, joinedload
 import tempfile
@@ -22,7 +22,7 @@ from .. import extract
 from .. import validate
 from .base import BaseHandler, PromMeasureRequest
 
-import matplotlib.pyplot, io, base64
+import matplotlib.pyplot as plt, io, base64, textwrap
 from wordcloud import WordCloud, STOPWORDS
 
 stopwords = STOPWORDS
@@ -1024,14 +1024,47 @@ class ProjectEvents(BaseHandler):
 class Reports(BaseHandler):
     @api_auth
     def get(self, project_id, report_id):
-        if (int(report_id) == 1):
-            return self.generate_word_cloud()
+        report_id = int(report_id)
+
+        if (report_id == 1 or report_id == 2):
+            return self._generate_chart(project_id, report_id)
+        elif (report_id == 3):
+            return self._generate_word_cloud()
         else:
             return self.send_json({
                 'data': "Carregou qualquer outro relatório!"
             })
     
-    def generate_word_cloud(self):
+    def _generate_chart(self, project_id, report_id):
+        tag = aliased(database.Tag)
+        query = self.db.query(tag).filter(tag.project_id == project_id).all()
+
+        tags_path = []
+        hl_count = []
+        for tg in query:
+            tags_path.append(tg.path)
+            hl_count.append(tg.highlights_count)
+
+        fig, ax = plt.subplots()
+        if report_id == 1:
+            ax.bar(tags_path, hl_count)
+            plt.xlabel("Tags")
+            plt.ylabel("Highlights quantity")
+            self._wrap_labels(ax, 10)
+        elif report_id == 2:
+            ax.pie(hl_count, labels=tags_path, autopct='%1.1f%%')
+
+        img_data = io.BytesIO()
+        plt.savefig(img_data, format="PNG")
+        img_data.seek(0)
+        img_base64 = base64.b64encode(img_data.getvalue()).decode()
+
+        return self.send_json({
+            'data': img_base64
+        })
+    
+    # Gerar uma word cloud com base nos dos textos dos highlights
+    def _generate_word_cloud(self):
         super_string = "Who are you talking to right now? Who is it you think you see? Do you know how much I make a year? I mean, even if I told you, you wouldn't believe it. Do you know what would happen if I suddenly decided to stop going into work? A business big enough that it could be listed on the NASDAQ goes belly up. Disappears! It ceases to exist without me. No, you clearly don't know who you're talking to, so let me clue you in. I am not in danger, Skyler. I am the danger. A guy opens his door and gets shot and you think that of me? No. I am the one who knocks!"
         
         wc = WordCloud(background_color = 'white', stopwords = stopwords, height = 400, width = 600).generate(super_string)
@@ -1042,3 +1075,12 @@ class Reports(BaseHandler):
         return self.send_json({
             'data': img_base64
         })
+
+    def _wrap_labels(self, ax, width, break_long_words=False):
+        labels = []
+        
+        for label in ax.get_xticklabels():
+            text = label.get_text()
+            labels.append(textwrap.fill(text, width=width, break_long_words=break_long_words))
+        
+        ax.set_xticklabels(labels, rotation=0)

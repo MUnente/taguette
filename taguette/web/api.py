@@ -1029,7 +1029,7 @@ class Reports(BaseHandler):
         if (report_id == 1 or report_id == 2):
             return self._generate_chart(project_id, report_id)
         elif (report_id == 3):
-            return self._generate_word_cloud()
+            return self._generate_word_cloud(project_id)
         else:
             return self.send_json({
                 'data': "Carregou qualquer outro relatório!"
@@ -1056,18 +1056,27 @@ class Reports(BaseHandler):
 
         img_data = io.BytesIO()
         plt.savefig(img_data, format="PNG")
-        img_data.seek(0)
         img_base64 = base64.b64encode(img_data.getvalue()).decode()
 
         return self.send_json({
             'data': img_base64
         })
     
-    # Gerar uma word cloud com base nos dos textos dos highlights
-    def _generate_word_cloud(self):
-        super_string = "Who are you talking to right now? Who is it you think you see? Do you know how much I make a year? I mean, even if I told you, you wouldn't believe it. Do you know what would happen if I suddenly decided to stop going into work? A business big enough that it could be listed on the NASDAQ goes belly up. Disappears! It ceases to exist without me. No, you clearly don't know who you're talking to, so let me clue you in. I am not in danger, Skyler. I am the danger. A guy opens his door and gets shot and you think that of me? No. I am the one who knocks!"
+    def _generate_word_cloud(self, project_id):
+        hl = aliased(database.Highlight)
+        hltg = aliased(database.highlight_tags)
+        tg = aliased(database.Tag)
+        query = (
+            self.db.query(hl.snippet)
+            .join(hltg, hltg.c.highlight_id == hl.id)
+            .join(tg, tg.id == hltg.c.tag_id)
+            .filter(tg.project_id == project_id)
+            .all()
+        )
         
-        wc = WordCloud(background_color = 'white', stopwords = stopwords, height = 400, width = 600).generate(super_string)
+        highlights_text = [x[0][3:-4] for x in query]
+
+        wc = WordCloud(background_color = 'white', stopwords = stopwords, height = 400, width = 600).generate(" ".join(highlights_text))
         img_data = io.BytesIO()
         wc.to_image().save(img_data, format="PNG")
         img_base64 = base64.b64encode(img_data.getvalue()).decode()

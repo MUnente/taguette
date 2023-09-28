@@ -48,7 +48,7 @@ include = [
 "Open Collective" = "https://opencollective.com/taguette"
 
 [tool.poetry.dependencies]
-python = ">=3.7,<4"
+python = ">=3.9,<4"
 
 alembic = ">=1.6,<1.9"
 beautifulsoup4 = "*"
@@ -73,6 +73,10 @@ opentelemetry-instrumentation-tornado = {version = ">=0.24b0,<0.26", optional = 
 psycopg2 = {version = ">=2.8,<3", optional = true}
 pymysql = {version = ">=1.0,<2", optional = true}
 cryptography = {version = "*", optional = true}
+matplotlib = "^3.7.2"
+pillow = "^10.0.0"
+numpy = "^1.25.2"
+wordcloud = "^1.9.2"
 
 [tool.poetry.group.dev.dependencies]
 coverage = "*"

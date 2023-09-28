@@ -22,6 +22,10 @@ from .. import extract
 from .. import validate
 from .base import BaseHandler, PromMeasureRequest
 
+import matplotlib.pyplot as plt, io, base64, textwrap
+from wordcloud import WordCloud, STOPWORDS
+
+stopwords = STOPWORDS
 
 logger = logging.getLogger(__name__)
 
@@ -1015,3 +1019,70 @@ class ProjectEvents(BaseHandler):
                 self.request.remote_ip,
                 1000.0 * self.request.request_time(),
             )
+
+
+class Reports(BaseHandler):
+    @api_auth
+    def get(self, project_id, report_id):
+        report_id = int(report_id)
+
+        if (report_id == 1):
+            return self._generate_bar_chart(project_id)
+        else:
+            return self._generate_word_cloud(project_id)
+    
+    def _generate_bar_chart(self, project_id):
+        tag = aliased(database.Tag)
+        query = self.db.query(tag).filter(tag.project_id == project_id).all()
+
+        tags_path = []
+        hl_count = []
+        for tg in query:
+            tags_path.append(tg.path)
+            hl_count.append(tg.highlights_count)
+
+        fig, ax = plt.subplots()
+        ax.bar(tags_path, hl_count)
+        plt.xlabel("Tags")
+        plt.ylabel("Highlights quantity")
+        self._wrap_labels(ax, 10)
+
+        img_data = io.BytesIO()
+        plt.savefig(img_data, format="PNG")
+        img_base64 = base64.b64encode(img_data.getvalue()).decode()
+
+        return self.send_json({
+            'data': img_base64
+        })
+    
+    def _generate_word_cloud(self, project_id):
+        hl = aliased(database.Highlight)
+        hltg = aliased(database.highlight_tags)
+        tg = aliased(database.Tag)
+        query = (
+            self.db.query(hl.snippet)
+            .join(hltg, hltg.c.highlight_id == hl.id)
+            .join(tg, tg.id == hltg.c.tag_id)
+            .filter(tg.project_id == project_id)
+            .all()
+        )
+        
+        highlights_text = [x[0][3:-4] for x in query]
+
+        wc = WordCloud(background_color = 'white', stopwords = stopwords, height = 400, width = 600).generate(" ".join(highlights_text))
+        img_data = io.BytesIO()
+        wc.to_image().save(img_data, format="PNG")
+        img_base64 = base64.b64encode(img_data.getvalue()).decode()
+
+        return self.send_json({
+            'data': img_base64
+        })
+
+    def _wrap_labels(self, ax, width, break_long_words=False):
+        labels = []
+        
+        for label in ax.get_xticklabels():
+            text = label.get_text()
+            labels.append(textwrap.fill(text, width=width, break_long_words=break_long_words))
+        
+        ax.set_xticklabels(labels, rotation=0)

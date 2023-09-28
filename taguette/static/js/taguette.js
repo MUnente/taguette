@@ -1567,6 +1567,7 @@ document.getElementById('members-current').addEventListener('submit', function(e
 
 var document_contents = document.getElementById('document-contents');
 var export_button = document.getElementById('export-button');
+var report_types = { BARCHART: 1, WORDCLOUD: 2 }
 
 function loadDocument(document_id) {
   if(document_id === null) {
@@ -1835,6 +1836,26 @@ window.onpopstate = function(e) {
     loadDocument(null);
   }
 };
+
+
+function loadReport(report_id) {
+  showSpinner();
+  getJSON('/api/project/' + project_id + '/report/' + report_id)
+    .then(function(result) {
+      generateReportFromBase64(result.data);
+    })
+  .catch(function(error) {
+    console.error("Failed to load report:", error);
+    alert(gettext("Error loading report!") + "\n\n" + error);
+  }).then(hideSpinner);
+}
+
+function generateReportFromBase64(base64Image) {
+  document_contents.innerHTML = '';
+  var image = new Image();
+  image.src = 'data:image/png;base64,' + base64Image;
+  document_contents.appendChild(image);
+}
 
 
 /*

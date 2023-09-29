@@ -6,7 +6,7 @@ import logging
 import math
 import os
 import prometheus_client
-from sqlalchemy import and_
+from sqlalchemy import and_, func, desc
 from sqlalchemy.exc import IntegrityError, DatabaseError, NoSuchTableError
 from sqlalchemy.orm import aliased, defer, joinedload
 import tempfile
@@ -1033,19 +1033,27 @@ class Reports(BaseHandler):
     
     def _generate_bar_chart(self, project_id):
         tag = aliased(database.Tag)
-        query = self.db.query(tag).filter(tag.project_id == project_id).all()
+        hltg = aliased(database.highlight_tags)
+        query = (
+            self.db.query(tag.id, tag.path, func.count(hltg.c.highlight_id).label("quantityHighlights"))
+            .join(hltg, hltg.c.tag_id == tag.id)
+            .group_by(tag.id, tag.path)
+            .order_by(desc("quantityHighlights"))
+            .all()
+        )
 
         tags_path = []
         hl_count = []
         for tg in query:
-            tags_path.append(tg.path)
-            hl_count.append(tg.highlights_count)
+            tags_path.append(tg[1])
+            hl_count.append(tg[2])
 
         fig, ax = plt.subplots()
-        ax.bar(tags_path, hl_count)
-        plt.xlabel("Tags")
-        plt.ylabel("Highlights quantity")
-        self._wrap_labels(ax, 10)
+        ax.barh(tags_path, hl_count)
+        plt.xlabel("Highlights quantity")
+        plt.ylabel("Tags")
+        plt.title("Quantity of highlights per tag")
+        plt.tight_layout()
 
         img_data = io.BytesIO()
         plt.savefig(img_data, format="PNG")
@@ -1077,12 +1085,4 @@ class Reports(BaseHandler):
         return self.send_json({
             'data': img_base64
         })
-
-    def _wrap_labels(self, ax, width, break_long_words=False):
-        labels = []
-        
-        for label in ax.get_xticklabels():
-            text = label.get_text()
-            labels.append(textwrap.fill(text, width=width, break_long_words=break_long_words))
-        
-        ax.set_xticklabels(labels, rotation=0)
+    

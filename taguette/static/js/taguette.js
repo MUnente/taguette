@@ -1837,10 +1837,23 @@ window.onpopstate = function(e) {
   }
 };
 
+$("#stopwords-filter").select2({ tags: true });
 
 function loadReport(report_id) {
   showSpinner();
-  getJSON('/api/project/' + project_id + '/report/' + report_id)
+  var url_request = '/api/project/' + project_id + '/report/' + report_id;
+
+  if (report_id === report_types.WORDCLOUD) {
+    document.getElementById('filter-component').style.display = '';
+    var extra_stopwords = $('#stopwords-filter').val();
+    url_request += '?is_highlights_only=' + document.getElementById('wordcloud-filter').checked + '&extra_stopwords=' + extra_stopwords;
+  }
+  else {
+    document.getElementById('wordcloud-filter').checked = false;
+    document.getElementById('filter-component').style.display = 'none';
+  }
+
+  getJSON(url_request)
     .then(function(result) {
       generateReportFromBase64(result.data);
     })

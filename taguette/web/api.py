@@ -1025,11 +1025,16 @@ class Reports(BaseHandler):
     @api_auth
     def get(self, project_id, report_id):
         report_id = int(report_id)
+        result = None
 
         if (report_id == 1):
-            return self._generate_bar_chart(project_id)
+            result = self._generate_bar_chart(project_id)
         else:
-            return self._generate_word_cloud(project_id)
+            result = self._generate_word_cloud(project_id)
+        
+        return self.send_json({
+            'data': result
+        })
     
     def _generate_bar_chart(self, project_id):
         tag = aliased(database.Tag)
@@ -1037,6 +1042,7 @@ class Reports(BaseHandler):
         query = (
             self.db.query(tag.id, tag.path, func.count(hltg.c.highlight_id).label("quantityHighlights"))
             .join(hltg, hltg.c.tag_id == tag.id)
+            .filter(tag.project_id == project_id)
             .group_by(tag.id, tag.path)
             .order_by(desc("quantityHighlights"))
             .all()
@@ -1057,32 +1063,43 @@ class Reports(BaseHandler):
 
         img_data = io.BytesIO()
         plt.savefig(img_data, format="PNG")
-        img_base64 = base64.b64encode(img_data.getvalue()).decode()
-
-        return self.send_json({
-            'data': img_base64
-        })
+        
+        return base64.b64encode(img_data.getvalue()).decode()
     
     def _generate_word_cloud(self, project_id):
+        is_highlights_only = self.get_argument("is_highlights_only")
+        stop_words = self.get_argument("extra_stopwords").split(',') + list(STOPWORDS)
+        
+        doc = aliased(database.Document)
         hl = aliased(database.Highlight)
         hltg = aliased(database.highlight_tags)
         tg = aliased(database.Tag)
-        query = (
-            self.db.query(hl.snippet)
-            .join(hltg, hltg.c.highlight_id == hl.id)
-            .join(tg, tg.id == hltg.c.tag_id)
-            .filter(tg.project_id == project_id)
-            .all()
-        )
-        
-        highlights_text = [x[0][3:-4] for x in query]
+        query = None
+        texts = ""
 
-        wc = WordCloud(background_color = 'white', stopwords = stopwords, height = 400, width = 600).generate(" ".join(highlights_text))
+        if (is_highlights_only.lower() == 'true'):
+            query = (
+                self.db.query(
+                    func.REPLACE(func.REPLACE(func.REPLACE(doc.contents, '<p>', ''), '</p>', ''), '\n', ' ')
+                    .label('contents')
+                )
+                .filter(doc.project_id == project_id)
+                .all()
+            )
+            texts = [text[0] for text in query]
+        else:
+            query = (
+                self.db.query(hl.snippet)
+                .join(hltg, hltg.c.highlight_id == hl.id)
+                .join(tg, tg.id == hltg.c.tag_id)
+                .filter(tg.project_id == project_id)
+                .all()
+            )
+            texts = [text[0][3:-4] for text in query]
+
+        wc = WordCloud(background_color = 'white', stopwords = stop_words, height = 400, width = 600).generate(" ".join(texts))
         img_data = io.BytesIO()
         wc.to_image().save(img_data, format="PNG")
-        img_base64 = base64.b64encode(img_data.getvalue()).decode()
 
-        return self.send_json({
-            'data': img_base64
-        })
+        return base64.b64encode(img_data.getvalue()).decode()
     

@@ -763,6 +763,7 @@ var tags_sorter = document.getElementById('tag-sortby');
 var sortTags = ['path', 'asc'];
 var tags_list = document.getElementById('tags-list');
 var tags_modal_list = document.getElementById('highlight-add-tags');
+var tags_barchart_filter = document.getElementById('barchart-tags-filter');
 
 function sortTagsBy(field, dir) {
   sortTags = [field, dir];
@@ -891,6 +892,9 @@ function updateTagsList() {
   // The list in the highlight modal
   updateModalTagsList();
 
+  // The list in the reports tab
+  updateBarchartTagsFilter();
+
   // Re-set all highlights, to update titles
   var hl_entries = Object.entries(highlights);
   for(var i = 0; i < hl_entries.length; ++i) {
@@ -973,6 +977,26 @@ function updateModalTagsList() {
   }
 
   console.log("Tags list updated");
+}
+
+function updateBarchartTagsFilter() {
+  var entries = Object.entries(tags);
+
+  // Empty the list
+  while (tags_barchart_filter.firstChild) {
+    var first = tags_barchart_filter.firstChild
+    tags_barchart_filter.removeChild(first);
+  }
+  
+  // Fill up the list again
+  for (var tag of entries) {
+    var opt = document.createElement('option');
+    opt.value = tag[1].id;
+    opt.innerHTML = tag[1].path;
+    tags_barchart_filter.appendChild(opt);
+  }
+
+  console.log("Bar chart tags list filter updated");
 }
 
 var highlightSearch = document.getElementById('highlight-search');
@@ -1838,19 +1862,28 @@ window.onpopstate = function(e) {
 };
 
 $("#stopwords-filter").select2({ tags: true });
+$("#barchart-tags-filter").select2();
 
 function loadReport(report_id) {
   showSpinner();
   var url_request = '/api/project/' + project_id + '/report/' + report_id;
 
   if (report_id === report_types.WORDCLOUD) {
-    document.getElementById('filter-component').style.display = '';
+    $("#barchart-tags-filter").val(null).change();
+    document.getElementById('wordcloud-filters-component').style.display = '';
+    document.getElementById('barchart-filters-component').style.display = 'none';
+    
     var extra_stopwords = $('#stopwords-filter').val();
     url_request += '?is_highlights_only=' + document.getElementById('wordcloud-filter').checked + '&extra_stopwords=' + extra_stopwords;
   }
-  else {
+  else if (report_id === report_types.BARCHART) {
+    $("#stopwords-filter").val(null).change();
     document.getElementById('wordcloud-filter').checked = false;
-    document.getElementById('filter-component').style.display = 'none';
+    document.getElementById('wordcloud-filters-component').style.display = 'none';
+    document.getElementById('barchart-filters-component').style.display = '';
+
+    var filtered_tags = $('#barchart-tags-filter').val();
+    url_request += '?filtered_tags=' + filtered_tags;
   }
 
   getJSON(url_request)

@@ -1037,13 +1037,22 @@ class Reports(BaseHandler):
         })
     
     def _generate_bar_chart(self, project_id):
+        filtered_tags = self.get_argument("filtered_tags")
+
         tag = aliased(database.Tag)
         hltg = aliased(database.highlight_tags)
         query = (
             self.db.query(tag.id, tag.path, func.count(hltg.c.highlight_id).label("quantityHighlights"))
             .join(hltg, hltg.c.tag_id == tag.id)
             .filter(tag.project_id == project_id)
-            .group_by(tag.id, tag.path)
+        )
+
+        if (filtered_tags != ''):
+            filtered_tags = [int(tag) for tag in filtered_tags.split(',')]
+            query = query.filter(tag.id.in_(filtered_tags))
+
+        query = (
+            query.group_by(tag.id, tag.path)
             .order_by(desc("quantityHighlights"))
             .all()
         )

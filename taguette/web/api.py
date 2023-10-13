@@ -1086,7 +1086,7 @@ class Reports(BaseHandler):
         query = None
         texts = ""
 
-        if (is_highlights_only.lower() == 'true'):
+        if (is_highlights_only.lower() != 'true'):
             query = (
                 self.db.query(
                     func.REPLACE(func.REPLACE(func.REPLACE(doc.contents, '<p>', ''), '</p>', ''), '\n', ' ')

@@ -1024,18 +1024,21 @@ class ProjectEvents(BaseHandler):
 class Reports(BaseHandler):
     @api_auth
     def get(self, project_id, report_id):
-        report_id = int(report_id)
-        result = None
+        try:
+            report_id = int(report_id)
+            result = None
 
-        if (report_id == 1):
-            result = self._generate_bar_chart(project_id)
-        else:
-            result = self._generate_word_cloud(project_id)
-        
-        return self.send_json({
-            'data': result
-        })
-    
+            if (report_id == 1):
+                result = self._generate_bar_chart(project_id)
+            else:
+                result = self._generate_word_cloud(project_id)
+            
+            return self.send_json({
+                'data': result
+            })
+        except HTTPError as e:
+            return self.send_error_json(e.status_code, e.log_message)
+
     def _generate_bar_chart(self, project_id):
         filtered_tags = self.get_argument("filtered_tags")
 
@@ -1056,6 +1059,9 @@ class Reports(BaseHandler):
             .order_by(desc("quantityHighlights"))
             .all()
         )
+
+        if (query == []):
+            raise HTTPError(404, log_message = "No data found for bar chart generation")
 
         tags_path = []
         hl_count = []
@@ -1106,7 +1112,17 @@ class Reports(BaseHandler):
             )
             texts = [text[0][3:-4] for text in query]
 
-        wc = WordCloud(background_color = 'white', stopwords = stop_words, height = 400, width = 600).generate(" ".join(texts))
+        if (texts == []):
+            raise HTTPError(404, log_message = "No data found for word cloud generation")
+
+        wc = WordCloud(
+            background_color = 'white', 
+            stopwords = stop_words, 
+            height = 400, 
+            width = 600, 
+            min_word_length= 4
+        ).generate(" ".join(texts))
+
         img_data = io.BytesIO()
         wc.to_image().save(img_data, format="PNG")
 
